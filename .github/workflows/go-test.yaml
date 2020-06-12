@@ -42,6 +42,13 @@ jobs:
           find . -type f -name "*.go" | grep -v "/vendor/" | xargs $GOPATH/bin/misspell -error -locale US
           $GOPATH/bin/staticcheck $GO_LIST
 
+      - name: Install extra test tools
+        shell: bash --noprofile --norc -x -eo pipefail {0}
+        # Ideally the fossa integration would be another GitHub Action, but at this point we're
+        # just trying to get this working.
+        run: |
+          curl -H 'Cache-Control: no-cache' https://raw.githubusercontent.com/fossas/fossa-cli/master/install.sh | sudo bash
+
       - name: Run tests
         shell: bash --noprofile --norc -x -eo pipefail {0}
         run: |
@@ -50,4 +57,17 @@ jobs:
           go test -v -run=TestNoRace --failfast -p=1 ./...
           # coverage via cov.sh disabled while just testing the waters
           go test -v -race -p=1 --failfast ./...
+          set +e
+
+      - name: Run license analysis with fossa
+        shell: bash --noprofile --norc -x -eo pipefail {0}
+        # For performance, we'd interleave the other tests between the
+        # 'analyze' which kicks things off and the 'test' which blocks until
+        # success, but we don't want fossa problems to pollute the results of
+        # the test phase.
+        run: |
+          set -e
+          fossa init
+          fossa analyze
+          fossa test
           set +e
