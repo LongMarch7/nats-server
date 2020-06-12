@@ -48,6 +48,7 @@ jobs:
         shell: bash --noprofile --norc -x -eo pipefail {0}
         run: |
           curl -fSs -H 'Cache-Control: no-cache' https://raw.githubusercontent.com/fossas/fossa-cli/master/install.sh | sudo bash
+          id ; pwd; ls; go version; fossa version || true
           fossa analyze
         env:
           FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
