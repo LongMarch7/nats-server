@@ -50,6 +50,15 @@ jobs:
         run: |
           curl -H 'Cache-Control: no-cache' https://raw.githubusercontent.com/fossas/fossa-cli/master/install.sh | sudo bash
 
+      - name: Start fossa async license analysis
+        shell: bash --noprofile --norc -x -eo pipefail {0}
+        run: |
+          echo "double-check run interpolation: matrix.go == ${{matrix.go}}"
+          [ ${{matrix.go}} != 1.14 ] || fossa init
+          [ ${{matrix.go}} != 1.14 ] || fossa analyze
+        env:
+          FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
+
       - name: Run tests
         shell: bash --noprofile --norc -x -eo pipefail {0}
         run: |
@@ -60,17 +69,13 @@ jobs:
           go test -v -race -p=1 --failfast ./...
           set +e
 
-      - name: Run license analysis with fossa
+      - name: Wait for fossa license analysis
         shell: bash --noprofile --norc -x -eo pipefail {0}
         # For performance, we'd interleave the other tests between the
         # 'analyze' which kicks things off and the 'test' which blocks until
         # success, but we don't want fossa problems to pollute the results of
         # the test phase.
         run: |
-          set -e
-          if [ ${{matrix.go}} = 1.14 ]; then
-            fossa init
-            fossa analyze
-            fossa test
-          fi
-          set +e
+          [ ${{matrix.go}} != 1.14 ] || fossa test
+        env:
+          FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
