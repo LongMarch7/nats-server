@@ -44,11 +44,12 @@ jobs:
           $GOPATH/bin/staticcheck $GO_LIST
 
       - name: Start fossa async license analysis
-        if: matrix.go == '1.14'
+        if: matrix.go == '1.14' && github.event_name == 'pull_request'
         shell: bash --noprofile --norc -x -eo pipefail {0}
         run: |
           curl -fSs -H 'Cache-Control: no-cache' https://raw.githubusercontent.com/fossas/fossa-cli/master/install.sh | sudo bash
-          id ; pwd; ls; go version; fossa version || true
+          ls go.???
+          go mod verify
           fossa analyze
         env:
           FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
@@ -64,7 +65,7 @@ jobs:
           set +e
 
       - name: Wait for fossa license analysis
-        if: matrix.go == '1.14'
+        if: matrix.go == '1.14' && github.event_name == 'pull_request'
         shell: bash --noprofile --norc -x -eo pipefail {0}
         # For performance, we'd interleave the other tests between the
         # 'analyze' which kicks things off and the 'test' which blocks until
