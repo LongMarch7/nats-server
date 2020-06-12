@@ -6,7 +6,6 @@ jobs:
     strategy:
       matrix:
         go: [1.13, 1.14]
-        # IF CHANGING: see also fossa constraint below, for run-once semantics
 
     env:
       GOPATH: /home/runner/work/nats-server
@@ -43,17 +42,6 @@ jobs:
           find . -type f -name "*.go" | grep -v "/vendor/" | xargs $GOPATH/bin/misspell -error -locale US
           $GOPATH/bin/staticcheck $GO_LIST
 
-      - name: Start fossa async license analysis
-        if: matrix.go == '1.14' && github.event_name == 'pull_request'
-        shell: bash --noprofile --norc -x -eo pipefail {0}
-        run: |
-          curl -fSs -H 'Cache-Control: no-cache' https://raw.githubusercontent.com/fossas/fossa-cli/master/install.sh | sudo bash
-          ls go.???
-          go mod verify
-          fossa analyze
-        env:
-          FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
-
       - name: Run tests
         shell: bash --noprofile --norc -x -eo pipefail {0}
         run: |
@@ -63,15 +51,3 @@ jobs:
           # coverage via cov.sh disabled while just testing the waters
           go test -v -race -p=1 --failfast ./...
           set +e
-
-      - name: Wait for fossa license analysis
-        if: matrix.go == '1.14' && github.event_name == 'pull_request'
-        shell: bash --noprofile --norc -x -eo pipefail {0}
-        # For performance, we'd interleave the other tests between the
-        # 'analyze' which kicks things off and the 'test' which blocks until
-        # success, but we don't want fossa problems to pollute the results of
-        # the test phase.
-        run: |
-          fossa test
-        env:
-          FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
