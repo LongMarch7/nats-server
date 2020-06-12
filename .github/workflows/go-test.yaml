@@ -6,6 +6,7 @@ jobs:
     strategy:
       matrix:
         go: [1.13, 1.14]
+        # IF CHANGING: see also fossa constraint below, for run-once semantics
 
     env:
       GOPATH: /home/runner/work/nats-server
@@ -67,7 +68,9 @@ jobs:
         # the test phase.
         run: |
           set -e
-          fossa init
-          fossa analyze
-          fossa test
+          if [ ${{matrix.go}} = 1.14 ]; then
+            fossa init
+            fossa analyze
+            fossa test
+          fi
           set +e
