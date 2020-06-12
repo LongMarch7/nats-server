@@ -43,19 +43,12 @@ jobs:
           find . -type f -name "*.go" | grep -v "/vendor/" | xargs $GOPATH/bin/misspell -error -locale US
           $GOPATH/bin/staticcheck $GO_LIST
 
-      - name: Install extra test tools
-        shell: bash --noprofile --norc -x -eo pipefail {0}
-        # Ideally the fossa integration would be another GitHub Action, but at this point we're
-        # just trying to get this working.
-        run: |
-          curl -H 'Cache-Control: no-cache' https://raw.githubusercontent.com/fossas/fossa-cli/master/install.sh | sudo bash
-
       - name: Start fossa async license analysis
+        if: matrix.go == '1.14'
         shell: bash --noprofile --norc -x -eo pipefail {0}
         run: |
-          echo "double-check run interpolation: matrix.go == ${{matrix.go}}"
-          [ ${{matrix.go}} != 1.14 ] || fossa init
-          [ ${{matrix.go}} != 1.14 ] || fossa analyze
+          curl -fSs -H 'Cache-Control: no-cache' https://raw.githubusercontent.com/fossas/fossa-cli/master/install.sh | sudo bash
+          fossa analyze
         env:
           FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
 
@@ -70,12 +63,13 @@ jobs:
           set +e
 
       - name: Wait for fossa license analysis
+        if: matrix.go == '1.14'
         shell: bash --noprofile --norc -x -eo pipefail {0}
         # For performance, we'd interleave the other tests between the
         # 'analyze' which kicks things off and the 'test' which blocks until
         # success, but we don't want fossa problems to pollute the results of
         # the test phase.
         run: |
-          [ ${{matrix.go}} != 1.14 ] || fossa test
+          fossa test
         env:
           FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
